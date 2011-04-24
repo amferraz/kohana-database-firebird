@@ -2,7 +2,7 @@
 /**
  * Firebird database connection.
  *
- * @package    Kohana/Database
+ * @package    Kohana/Firebird
  * @category   Drivers
  * @author     Anderson Marques Ferraz
  * @copyright  (c) 2011 Anderson Marques Ferraz
@@ -11,7 +11,11 @@
 class Kohana_Database_Firebird extends Database {
 
 
-        protected $_sql_list_columns =
+    /**
+     * A very big query only for database inflection. Damn, Firebird.
+     * @var string
+     */
+    protected $_sql_list_table_columns =
         'SELECT
             lower(trim(relation_fields.RDB$FIELD_NAME)) as "FIELD",
             trim(iif(fields.RDB$FIELD_TYPE <>8,
@@ -75,28 +79,20 @@ class Kohana_Database_Firebird extends Database {
 	// Database in use by each connection
 	protected static $_current_databases = array();
 
-	// Use SET NAMES to set the character set
-//	protected static $_set_names;
-
 	// Identifier for this connection within the PHP driver
 	protected $_connection_id;
 
+
+        // Identifier for this transaction within the Firebird connection
+	protected $_transaction;
+
 	// Firebird uses a double-quote for identifiers
-//	protected $_identifier = '"';
 	protected $_identifier = '';
 
 	public function connect()
 	{
 		if ($this->_connection)
 			return;
-
-                //nao ha set names
-//		if (Database_Firebird::$_set_names === NULL)
-//		{
-//			// Determine if we can use mysql_set_charset(), which is only
-//			// available on PHP 5.2.3+ when compiled against MySQL 5.0+
-//			Database_Firebird::$_set_names = ! function_exists('mysql_set_charset');
-//		}
 
 		// Extract the connection parameters, adding required variabels
 		extract($this->_config['connection'] + array(
@@ -108,20 +104,19 @@ class Kohana_Database_Firebird extends Database {
 		));
 
 		// Prevent this information from showing up in traces
-		unset($this->_config['connection']['username'], $this->_config['connection']['password']);
+		//  can't do that: Firebird needs to reconect.
+//		unset($this->_config['connection']['username'], $this->_config['connection']['password']);
 
 		try
 		{
 			if ($persistent)
 			{
 				// Create a persistent connection
-//				$this->_connection = mysql_pconnect($hostname, $username, $password);
 				$this->_connection = ibase_pconnect($hostname.":".$database, $username, $password, $this->_config['charset']);
 			}
 			else
 			{
 				// Create a connection and force it to be a new link
-//				$this->_connection = mysql_connect($hostname, $username, $password, TRUE);
 				$this->_connection = ibase_connect($hostname.":".$database, $username, $password, $this->_config['charset']);
 			}
 		}
@@ -130,9 +125,6 @@ class Kohana_Database_Firebird extends Database {
 			// No connection exists
 			$this->_connection = NULL;
 
-//			throw new Database_Exception(mysql_errno(), '[:code] :error', array(
-//					':code' => mysql_errno(),
-//					':error' => mysql_error(),
 			throw new Database_Exception(ibase_errcode(), '[:code] :error', array(
 					':code' => ibase_errcode(),
 					':error' => ibase_errmsg(),
@@ -142,13 +134,7 @@ class Kohana_Database_Firebird extends Database {
 		// \xFF is a better delimiter, but the PHP driver uses underscore
 		$this->_connection_id = sha1($hostname.":".$database.'_'.$username.'_'.$password);
 
-//		$this->_select_db($database);
-//
-//		if ( ! empty($this->_config['charset']))
-//		{
-//			// Set the character set
-//			$this->set_charset($this->_config['charset']);
-//		}
+
 	}
 
 	/**
@@ -159,66 +145,49 @@ class Kohana_Database_Firebird extends Database {
 	 */
 	protected function _select_db($database)
 	{
-//		if ( ! mysql_select_db($database, $this->_connection))
-//		{
-//			// Unable to select database
-//			throw new Database_Exception(mysql_errno($this->_connection), '[:code] :error', array(
-//				':code' => mysql_errno($this->_connection),
-//				':error' => mysql_error($this->_connection),
-//			));
-//		}
-//
-//		Database_MySQL::$_current_databases[$this->_connection_id] = $database;
+                //gracefully do nothing
+
 	}
+
+        /**
+         * Reconnects with database.
+         */
+        public function reconnect()
+        {
+            $this->disconnect();
+            $this->connect();
+        }
 
 	public function disconnect()
 	{
-//		try
-//		{
-//			// Database is assumed disconnected
-//			$status = TRUE;
-//
-//			if (is_resource($this->_connection))
-//			{
-//				if ($status = mysql_close($this->_connection))
-//				{
-//					// Clear the connection
-//					$this->_connection = NULL;
-//				}
-//			}
-//		}
-//		catch (Exception $e)
-//		{
-//			// Database is probably not disconnected
-//			$status = ! is_resource($this->_connection);
-//		}
-//
-//		return $status;
+		try
+		{
+			// Database is assumed disconnected
+			$status = TRUE;
+
+			if (is_resource($this->_connection))
+			{
+				if ($status = ibase_close($this->_connection))
+				{
+					// Clear the connection
+					$this->_connection = NULL;
+				}
+			}
+		}
+		catch (Exception $e)
+		{
+			// Database is probably not disconnected
+			$status = ! is_resource($this->_connection);
+		}
+
+		return $status;
 	}
 
 	public function set_charset($charset)
 	{
-		// Make sure the database is connected
-//		$this->_connection or $this->connect();
-//
-//		if (Database_MySQL::$_set_names === TRUE)
-//		{
-//			// PHP is compiled against MySQL 4.x
-//			$status = (bool) mysql_query('SET NAMES '.$this->quote($charset), $this->_connection);
-//		}
-//		else
-//		{
-//			// PHP is compiled against MySQL 5.x
-//			$status = mysql_set_charset($charset, $this->_connection);
-//		}
-//
-//		if ($status === FALSE)
-//		{
-//			throw new Database_Exception(mysql_errno($this->_connection), '[:code] :error', array(
-//				':code' => mysql_errno($this->_connection),
-//				':error' => mysql_error($this->_connection),
-//			));
-//		}
+                //gracefully do nothing. Can't select firebird connection
+                // while connected connection
+
 	}
 
 	public function query($type, $sql, $as_object = FALSE, array $params = NULL)
@@ -232,13 +201,8 @@ class Kohana_Database_Firebird extends Database {
 			$benchmark = Profiler::start("Database ({$this->_instance})", $sql);
 		}
 
-//		if ( ! empty($this->_config['connection']['persistent']) AND $this->_config['connection']['database'] !== Database_MySQL::$_current_databases[$this->_connection_id])
-//		{
-//			// Select database on persistent connections
-//			$this->_select_db($this->_config['connection']['database']);
-//		}
-//
-//		// Execute the query
+
+		// Execute the query
 		if (($result = ibase_query($this->_connection,$sql)) === FALSE)
 		{
 			if (isset($benchmark))
@@ -272,7 +236,16 @@ class Kohana_Database_Firebird extends Database {
 		}
 		elseif ($type === Database::INSERT)
 		{
-                        $data = ibase_fetch_assoc($result);
+
+                        // simulating mysqls' mysql_insert_id()
+                        $data = array();
+
+                        if ($result != TRUE){
+                            $data = ibase_fetch_assoc($result);
+                        }
+
+                        $data = Arr::get($data, 'ID', null);
+                        
 			// Return a list of insert id and rows created
 			return array(
 				$data['ID'],
@@ -281,9 +254,7 @@ class Kohana_Database_Firebird extends Database {
 		}
 		else
 		{
-//                    throw new Exception('Not implemented yet');
 			// Return the number of rows affected
-//			return mysql_affected_rows($this->_connection);
 			return ibase_affected_rows($this->_connection);
 		}
 	}
@@ -323,16 +294,22 @@ class Kohana_Database_Firebird extends Database {
 	 */
 	public function begin($mode = NULL)
 	{
+            
 		// Make sure the database is connected
-//		$this->_connection or $this->connect();
-//
-//		if ($mode AND ! mysql_query("SET TRANSACTION ISOLATION LEVEL $mode", $this->_connection))
-//		{
-//			throw new Database_Exception(mysql_errno($this->_connection), ':error', array(':error' => mysql_error($this->_connection)),
-//										 mysql_errno($this->_connection));
-//		}
-//
-//		return (bool) mysql_query('START TRANSACTION', $this->_connection);
+		$this->_connection or $this->connect();
+
+
+                $this->_transaction = ibase_trans(IBASE_DEFAULT, $this->_connection );
+
+                if (!$this->_transaction){
+                    throw new Database_Exception(ibase_errcode(), '[:code] :error', array(
+					':code' => ibase_errcode(),
+					':error' => ibase_errmsg(),
+				));
+                }
+
+                return (bool) $this->_transaction;
+
 	}
 
 	/**
@@ -341,13 +318,13 @@ class Kohana_Database_Firebird extends Database {
 	 * @param string Isolation level
 	 * @return boolean
 	 */
-	public function commit()
+	public function commit($mode = null)
 	{
-            throw new Exception('Not implemented yet');
-		// Make sure the database is connected
-//		$this->_connection or $this->connect();
-//
-//		return (bool) mysql_query('COMMIT', $this->_connection);
+		// Make sure the database is connected and a transaction has started
+		$this->_connection or $this->connect();
+                $this->_transaction or $this->begin();
+                
+		return ibase_commit($this->_transaction);
 	}
 
 	/**
@@ -358,34 +335,40 @@ class Kohana_Database_Firebird extends Database {
 	 */
 	public function rollback()
 	{
-            throw new Exception('Not implemented yet');
-		// Make sure the database is connected
-//		$this->_connection or $this->connect();
-//
-//		return (bool) mysql_query('ROLLBACK', $this->_connection);
+		// Make sure the database is connected and a transaction has started
+		$this->_connection or $this->connect();
+                $this->_transaction or $this->begin();
+                
+		return  ibase_rollback($this->_transaction);
 	}
 
 	public function list_tables($like = NULL)
 	{
+
+            $sql_list_tables = 'select lower(trim(relations.RDB$RELATION_NAME)) as table_names
+                                from RDB$RELATIONS relations
+                                where relations.RDB$SYSTEM_FLAG = 0 ';
+            
             throw new Exception('Not implemented yet');
-//		if (is_string($like))
-//		{
-//			// Search for table names
-//			$result = $this->query(Database::SELECT, 'SHOW TABLES LIKE '.$this->quote($like), FALSE);
-//		}
-//		else
-//		{
-//			// Find all table names
-//			$result = $this->query(Database::SELECT, 'SHOW TABLES', FALSE);
-//		}
-//
-//		$tables = array();
-//		foreach ($result as $row)
-//		{
-//			$tables[] = reset($row);
-//		}
-//
-//		return $tables;
+		if (is_string($like))
+		{
+			// Search for table names
+			$result = $this->query(Database::SELECT,
+                                $sql_list_tables.' and lower(trim(relations.RDB$RELATION_NAME)) like lower(trim('.$this->quote($like).'))', FALSE);
+		}
+		else
+		{
+			// Find all table names
+			$result = $this->query(Database::SELECT, $sql_list_tables, FALSE);
+		}
+
+		$tables = array();
+		foreach ($result as $row)
+		{
+			$tables[] = reset($row);
+		}
+
+		return $tables;
 	}
 
 
@@ -402,7 +385,7 @@ class Kohana_Database_Firebird extends Database {
 		else
 		{
 			// Find all column names
-                        $formatted_sql = $this->_sql_list_columns.' and trim(relation_fields.RDB$RELATION_NAME)=upper(\''.$table.'\');';
+                        $formatted_sql = $this->_sql_list_table_columns.' and trim(relation_fields.RDB$RELATION_NAME)=upper(\''.$table.'\');';
 			$result = $this->query(Database::SELECT, $formatted_sql, FALSE);
 		}
 
@@ -458,15 +441,8 @@ class Kohana_Database_Firebird extends Database {
 		// Make sure the database is connected
 		$this->_connection or $this->connect();
 
-//                if (($value = mysql_real_es( (string) $value, $this->_connection)) === FALSE)
-//		{
-//			throw new Database_Exception(ibase_errcode(), '[:code] :error', array(
-//				':code' => ibase_errcode(),
-//				':error' => ibase_errmsg(),
-//			));
-//		}
+
                 $value = str_replace(array('\\','\''),array('\\\\','\\\''),$value);
-//
 //		// SQL standard is to use single-quotes for all values
 		return "'$value'";
 	}

@@ -2,7 +2,7 @@
 /**
  * Database query builder for Firebird SELECT statements. See [Query Builder](/database/query/builder) for usage and examples.
  *
- * @package    Kohana/Database
+ * @package    Kohana/Firebird
  * @category   Query
  * @author     Anderson Marques Ferraz
  * @copyright  (c) 2011 Anderson Marques Ferraz

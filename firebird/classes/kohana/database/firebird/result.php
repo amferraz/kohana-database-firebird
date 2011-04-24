@@ -1,8 +1,8 @@
 <?php defined('SYSPATH') or die('No direct script access.');
 /**
- * Firebird database result.   See [Results](/database/results) for usage and examples.
+ * Firebird database result. See [Results](/database/results) for usage and examples.
  *
- * @package    Kohana/Database
+ * @package    Kohana/Firebird
  * @category   Query/Result
  * @author     Anderson Marques Ferraz
  * @copyright  (c) 2011 Anderson Marques Ferraz
