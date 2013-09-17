@@ -19,7 +19,7 @@ class Kohana_Database_Firebird_Result extends Database_Result {
 
                 $func_name = $as_object ? 'ibase_fetch_object' : 'ibase_fetch_assoc';
 
-                while (($row = $func_name($result))!== FALSE ){
+                while (($row = $func_name($result, IBASE_TEXT))!== FALSE ){
 
                     if ($func_name=='ibase_fetch_assoc'){
                         //convert column names to lowercase... damn, Firebird!
